@@ -763,74 +763,93 @@ export class VirtualScrollerComponent implements OnInit, OnChanges, OnDestroy {
 		}			
 
 		this.zone.runOutsideAngular(() => {
-			requestAnimationFrame(() => {
+			setTimeout(() => {
+				requestAnimationFrame(() => {
 
-				if (itemsArrayModified) {
-					this.resetWrapGroupDimensions();
-				}
-				let viewport = this.calculateViewport();
-
-				let startChanged = itemsArrayModified || viewport.startIndex !== this.previousViewPort.startIndex;
-				let endChanged = itemsArrayModified || viewport.endIndex !== this.previousViewPort.endIndex;
-				let scrollLengthChanged = viewport.scrollLength !== this.previousViewPort.scrollLength;
-				let paddingChanged = viewport.padding !== this.previousViewPort.padding;
-				let scrollPositionChanged = viewport.scrollStartPosition !== this.previousViewPort.scrollStartPosition || viewport.scrollEndPosition !== this.previousViewPort.scrollEndPosition || viewport.maxScrollPosition !== this.previousViewPort.maxScrollPosition;
-
-				this.previousViewPort = viewport;
-
-				if (scrollLengthChanged) {
-					this.renderer.setStyle(this.invisiblePaddingElementRef.nativeElement, this._invisiblePaddingProperty, `${viewport.scrollLength}px`);
-				}
-
-				if (paddingChanged) {
-					if (this.useMarginInsteadOfTranslate) {
-						this.renderer.setStyle(this.contentElementRef.nativeElement, this._marginDir, `${viewport.padding}px`);
+					if (itemsArrayModified) {
+						this.resetWrapGroupDimensions();
 					}
-					else {
-						this.renderer.setStyle(this.contentElementRef.nativeElement, 'transform', `${this._translateDir}(${viewport.padding}px)`);
-						this.renderer.setStyle(this.contentElementRef.nativeElement, 'webkitTransform', `${this._translateDir}(${viewport.padding}px)`);
+					let viewport = this.calculateViewport();
+
+					let startChanged = itemsArrayModified || viewport.startIndex !== this.previousViewPort.startIndex;
+					let endChanged = itemsArrayModified || viewport.endIndex !== this.previousViewPort.endIndex;
+					let scrollLengthChanged = viewport.scrollLength !== this.previousViewPort.scrollLength;
+					let paddingChanged = viewport.padding !== this.previousViewPort.padding;
+					let scrollPositionChanged = viewport.scrollStartPosition !== this.previousViewPort.scrollStartPosition || viewport.scrollEndPosition !== this.previousViewPort.scrollEndPosition || viewport.maxScrollPosition !== this.previousViewPort.maxScrollPosition;
+
+					this.previousViewPort = viewport;
+
+					if (scrollLengthChanged) {
+						this.renderer.setStyle(this.invisiblePaddingElementRef.nativeElement, this._invisiblePaddingProperty, `${viewport.scrollLength}px`);
 					}
-				}
 
-				if (this.headerElementRef) {
-					let scrollPosition = this.getScrollElement()[this._scrollType];
-					let containerOffset = this.getElementsOffset();
-					let offset = Math.max(scrollPosition - viewport.padding - containerOffset + this.headerElementRef.nativeElement.clientHeight, 0);
-					this.renderer.setStyle(this.headerElementRef.nativeElement, 'transform', `${this._translateDir}(${offset}px)`);
-					this.renderer.setStyle(this.headerElementRef.nativeElement, 'webkitTransform', `${this._translateDir}(${offset}px)`);
-				}
-
-				const changeEventArg: IPageInfo = (startChanged || endChanged) ? {
-					startIndex: viewport.startIndex,
-					endIndex: viewport.endIndex,
-					scrollStartPosition: viewport.scrollStartPosition,
-					scrollEndPosition: viewport.scrollEndPosition,
-					startIndexWithBuffer: viewport.startIndexWithBuffer,
-					endIndexWithBuffer: viewport.endIndexWithBuffer,
-					maxScrollPosition: viewport.maxScrollPosition
-				} : undefined;
-
-
-				if (startChanged || endChanged || scrollPositionChanged) {
-					const handleChanged = () => {
-						// update the scroll list to trigger re-render of components in viewport
-						this.viewPortItems = viewport.startIndexWithBuffer >= 0 && viewport.endIndexWithBuffer >= 0 ? this.items.slice(viewport.startIndexWithBuffer, viewport.endIndexWithBuffer + 1) : [];
-						this.vsUpdate.emit(this.viewPortItems);
-
-						if (startChanged) {
-							this.vsStart.emit(changeEventArg);
+					if (paddingChanged) {
+						if (this.useMarginInsteadOfTranslate) {
+							this.renderer.setStyle(this.contentElementRef.nativeElement, this._marginDir, `${viewport.padding}px`);
 						}
-
-						if (endChanged) {
-							this.vsEnd.emit(changeEventArg);
+						else {
+							this.renderer.setStyle(this.contentElementRef.nativeElement, 'transform', `${this._translateDir}(${viewport.padding}px)`);
+							this.renderer.setStyle(this.contentElementRef.nativeElement, 'webkitTransform', `${this._translateDir}(${viewport.padding}px)`);
 						}
+					}
 
-						if (startChanged || endChanged) {
-							this.changeDetectorRef.markForCheck();
-							this.vsChange.emit(changeEventArg);
+					if (this.headerElementRef) {
+						let scrollPosition = this.getScrollElement()[this._scrollType];
+						let containerOffset = this.getElementsOffset();
+						let offset = Math.max(scrollPosition - viewport.padding - containerOffset + this.headerElementRef.nativeElement.clientHeight, 0);
+						this.renderer.setStyle(this.headerElementRef.nativeElement, 'transform', `${this._translateDir}(${offset}px)`);
+						this.renderer.setStyle(this.headerElementRef.nativeElement, 'webkitTransform', `${this._translateDir}(${offset}px)`);
+					}
+
+					const changeEventArg: IPageInfo = (startChanged || endChanged) ? {
+						startIndex: viewport.startIndex,
+						endIndex: viewport.endIndex,
+						scrollStartPosition: viewport.scrollStartPosition,
+						scrollEndPosition: viewport.scrollEndPosition,
+						startIndexWithBuffer: viewport.startIndexWithBuffer,
+						endIndexWithBuffer: viewport.endIndexWithBuffer,
+						maxScrollPosition: viewport.maxScrollPosition
+					} : undefined;
+
+
+					if (startChanged || endChanged || scrollPositionChanged) {
+						const handleChanged = () => {
+							// update the scroll list to trigger re-render of components in viewport
+							this.viewPortItems = viewport.startIndexWithBuffer >= 0 && viewport.endIndexWithBuffer >= 0 ? this.items.slice(viewport.startIndexWithBuffer, viewport.endIndexWithBuffer + 1) : [];
+							this.vsUpdate.emit(this.viewPortItems);
+
+							if (startChanged) {
+								this.vsStart.emit(changeEventArg);
+							}
+
+							if (endChanged) {
+								this.vsEnd.emit(changeEventArg);
+							}
+
+							if (startChanged || endChanged) {
+								this.changeDetectorRef.markForCheck();
+								this.vsChange.emit(changeEventArg);
+							}
+
+							if (maxRunTimes > 0) {
+								this.refresh_internal(false, refreshCompletedCallback, maxRunTimes - 1);
+								return;
+							}
+
+							if (refreshCompletedCallback) {
+								refreshCompletedCallback();
+							}
+						};
+
+
+						if (this.executeRefreshOutsideAngularZone) {
+							handleChanged();
 						}
-
-						if (maxRunTimes > 0) {
+						else {
+							this.zone.run(handleChanged);
+						}
+					} else {
+						if (maxRunTimes > 0 && (scrollLengthChanged || paddingChanged)) {
 							this.refresh_internal(false, refreshCompletedCallback, maxRunTimes - 1);
 							return;
 						}
@@ -838,26 +857,9 @@ export class VirtualScrollerComponent implements OnInit, OnChanges, OnDestroy {
 						if (refreshCompletedCallback) {
 							refreshCompletedCallback();
 						}
-					};
-
-
-					if (this.executeRefreshOutsideAngularZone) {
-						handleChanged();
 					}
-					else {
-						this.zone.run(handleChanged);
-					}
-				} else {
-					if (maxRunTimes > 0 && (scrollLengthChanged || paddingChanged)) {
-						this.refresh_internal(false, refreshCompletedCallback, maxRunTimes - 1);
-						return;
-					}
-
-					if (refreshCompletedCallback) {
-						refreshCompletedCallback();
-					}
-				}
-			});
+				});
+			})
 		});
 	}
 
